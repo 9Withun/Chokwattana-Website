@@ -20,9 +20,11 @@ class ProductService {
     }
 
     if (kIsWeb) {
+      const backendHost = 'http://192.168.20.3';
       final origin = Uri.base.origin;
-      if (origin.isNotEmpty && origin != 'null') {
-        final normalizedOrigin = origin.replaceFirst(RegExp(r'/+$'), '');
+      final normalizedOrigin = origin.replaceFirst(RegExp(r'/+$'), '');
+
+      if (normalizedOrigin.isNotEmpty && normalizedOrigin != 'null') {
         final hasLegacyPath = normalizedOrigin.endsWith('/my_website');
         if (hasLegacyPath) {
           return '$normalizedOrigin/api';
@@ -32,11 +34,14 @@ class ProductService {
             normalizedOrigin.contains('127.0.0.1') ||
             normalizedOrigin.contains('192.168.') ||
             normalizedOrigin.contains('10.')) {
+          if (normalizedOrigin.contains(':')) {
+            return '$backendHost/my_website/api';
+          }
           return '$normalizedOrigin/my_website/api';
         }
-
-        return '$normalizedOrigin/api';
       }
+
+      return '$backendHost/my_website/api';
     }
 
     return fallbackBaseUrl;

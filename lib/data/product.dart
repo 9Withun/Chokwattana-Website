@@ -10,19 +10,24 @@ class Product {
       return '$cleaned/../uploads/products/';
     }
 
+    const backendHost = 'http://192.168.20.3';
     final origin = Uri.base.origin;
-    if (origin.isNotEmpty && origin != 'null') {
-      final normalizedOrigin = origin.replaceFirst(RegExp(r'/+$'), '');
+    final normalizedOrigin = origin.replaceFirst(RegExp(r'/+$'), '');
+
+    if (normalizedOrigin.isNotEmpty && normalizedOrigin != 'null') {
       if (normalizedOrigin.contains('localhost') ||
           normalizedOrigin.contains('127.0.0.1') ||
           normalizedOrigin.contains('192.168.') ||
           normalizedOrigin.contains('10.')) {
+        if (normalizedOrigin.contains(':')) {
+          return '$backendHost/my_website/uploads/products/';
+        }
         return '$normalizedOrigin/my_website/uploads/products/';
       }
       return '$normalizedOrigin/uploads/products/';
     }
 
-    return 'http://192.168.20.3/my_website/uploads/products/';
+    return '$backendHost/my_website/uploads/products/';
   }
 
   final int id;
