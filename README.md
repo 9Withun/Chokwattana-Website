@@ -10,7 +10,7 @@ samples, guidance on mobile development, and a full API reference.
 
 ## Product API
 
-The app reads products from `http://192.168.20.3/chokweb_database/api.php`.
+The app reads products from `http://100.119.18.68/chokweb_database/api.php`.
 Override the API folder URL at build time when using another host:
 
 ```sh
