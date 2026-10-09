@@ -56,6 +56,8 @@ flutter:
 
   assets:
     - lib/Images/Logo.png
+    - lib/Images/asset/banner/
+    - lib/Images/asset/promotion/
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

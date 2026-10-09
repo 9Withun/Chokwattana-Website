@@ -6,7 +6,10 @@ import 'package:project/models/product_model.dart';
 class CategoryMenuProcess {
   static List<String> get categoryNames => CategoryRepository.categoryNames;
 
-  static RelativeRect getMenuPosition(BuildContext context, RenderBox renderBox) {
+  static RelativeRect getMenuPosition(
+    BuildContext context,
+    RenderBox renderBox,
+  ) {
     final offset = renderBox.localToGlobal(Offset.zero);
     return RelativeRect.fromRect(
       Rect.fromLTWH(
@@ -33,7 +36,11 @@ class CategoryMenuProcess {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.chevron_right_rounded, size: 18, color: Colors.green),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    size: 18,
+                    color: Colors.green,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -66,30 +73,32 @@ class PromotionCarouselProcess {
   static bool canScrollNext(double offset, double maxScrollExtent) =>
       maxScrollExtent - offset > 0.5;
 
-  static double nextOffset(double currentOffset, double cardWidth, double maxScrollExtent) {
-    return (currentOffset + cardWidth + 16).clamp(0, maxScrollExtent);
+  static double nextOffset(
+    double currentOffset,
+    double cardWidth,
+    double maxScrollExtent,
+  ) {
+    return (currentOffset + cardWidth + 8).clamp(0, maxScrollExtent);
   }
 
-  static double previousOffset(double currentOffset, double cardWidth, double maxScrollExtent) {
-    return (currentOffset - cardWidth - 16).clamp(0, maxScrollExtent);
+  static double previousOffset(
+    double currentOffset,
+    double cardWidth,
+    double maxScrollExtent,
+  ) {
+    return (currentOffset - cardWidth - 8).clamp(0, maxScrollExtent);
   }
 }
 
 class CategoryPageData {
-  const CategoryPageData({
-    required this.categoryName,
-    required this.products,
-  });
+  const CategoryPageData({required this.categoryName, required this.products});
 
   final String categoryName;
   final List<ProductItem> products;
 
   static CategoryPageData fromCategoryName(String categoryName) {
     final products = CategoryMenuProcess.productsForCategory(categoryName);
-    return CategoryPageData(
-      categoryName: categoryName,
-      products: products,
-    );
+    return CategoryPageData(categoryName: categoryName, products: products);
   }
 }
 

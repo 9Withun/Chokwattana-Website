@@ -1,83 +1,109 @@
-class Product {
-  static String get imageBaseUrl {
-    const configured = String.fromEnvironment(
-      'API_BASE_URL',
-      defaultValue: '',
+class ProductImage {
+  const ProductImage({
+    required this.id,
+    required this.image,
+    required this.imageUrl,
+    required this.sortOrder,
+    required this.isPrimary,
+  });
+
+  final int id;
+  final String image;
+  final String imageUrl;
+  final int sortOrder;
+  final bool isPrimary;
+
+  factory ProductImage.fromJson(Map<String, dynamic> json) {
+    return ProductImage(
+      id: _intValue(json['image_id']),
+      image: _stringValue(json['image']),
+      imageUrl: _stringValue(json['image_url']),
+      sortOrder: _intValue(json['sort_order']),
+      isPrimary:
+          json['is_primary'] == true ||
+          json['is_primary'] == 1 ||
+          json['is_primary'] == '1',
     );
-
-    if (configured.isNotEmpty) {
-      final cleaned = configured.replaceFirst(RegExp(r'/+$'), '');
-      return '$cleaned/../uploads/products/';
-    }
-
-    const backendHost = 'http://192.168.20.3';
-    final origin = Uri.base.origin;
-    final normalizedOrigin = origin.replaceFirst(RegExp(r'/+$'), '');
-
-    if (normalizedOrigin.isNotEmpty && normalizedOrigin != 'null') {
-      if (normalizedOrigin.contains('localhost') ||
-          normalizedOrigin.contains('127.0.0.1') ||
-          normalizedOrigin.contains('192.168.') ||
-          normalizedOrigin.contains('10.')) {
-        if (normalizedOrigin.contains(':')) {
-          return '$backendHost/my_website/uploads/products/';
-        }
-        return '$normalizedOrigin/my_website/uploads/products/';
-      }
-      return '$normalizedOrigin/uploads/products/';
-    }
-
-    return '$backendHost/my_website/uploads/products/';
   }
+}
+
+class Product {
+  const Product({
+    required this.id,
+    required this.productId,
+    required this.productBrand,
+    required this.productName,
+    required this.productDetail,
+    required this.price,
+    required this.proPrice,
+    required this.proName,
+    required this.image,
+    required this.imageUrl,
+    required this.images,
+    required this.imageCount,
+  });
 
   final int id;
   final String productId;
   final String productBrand;
   final String productName;
-  final String productType;
+  final String productDetail;
   final double price;
-  final double proPrice;
+  final double? proPrice;
   final String proName;
-  final int stock;
   final String image;
-
-  const Product({
-    required this.id,
-    this.productId = '',
-    this.productBrand = '',
-    required this.productName,
-    this.productType = '',
-    required this.price,
-    this.proPrice = 0,
-    this.proName = '',
-    this.stock = 0,
-    required this.image,
-  });
-
-  String get imageUrl {
-    if (image.isEmpty) {
-      return '';
-    }
-
-    if (image.startsWith('http://') || image.startsWith('https://')) {
-      return image;
-    }
-
-    return '$imageBaseUrl$image';
-  }
+  final String imageUrl;
+  final List<ProductImage> images;
+  final int imageCount;
 
   factory Product.fromJson(Map<String, dynamic> json) {
+    final rawImages = json['images'];
+    final images = rawImages is List
+        ? rawImages
+              .whereType<Map>()
+              .map(
+                (image) =>
+                    ProductImage.fromJson(Map<String, dynamic>.from(image)),
+              )
+              .toList()
+        : const <ProductImage>[];
+    final image = _stringValue(json['image']);
+    final imageUrl = _stringValue(json['image_url']);
+
     return Product(
-      id: int.tryParse(json['id'].toString()) ?? 0,
-      productId: json['product_id']?.toString() ?? '',
-      productBrand: json['product_brand']?.toString() ?? '',
-      productName: json['product_name']?.toString() ?? '',
-      productType: json['product_type']?.toString() ?? '',
-      price: double.tryParse(json['price'].toString()) ?? 0,
-      proPrice: double.tryParse(json['pro_price'].toString()) ?? 0,
-      proName: json['pro_name']?.toString() ?? '',
-      stock: int.tryParse(json['stock'].toString()) ?? 0,
-      image: json['image']?.toString() ?? '',
+      id: _intValue(json['id']),
+      productId: _stringValue(json['product_id']),
+      productBrand: _stringValue(json['product_brand']),
+      productName: _stringValue(json['product_name']),
+      productDetail: _stringValue(
+        json['product_detili'] ?? json['product_detail'],
+      ),
+      price: _doubleValue(json['price']),
+      proPrice: json['pro_price'] == null || json['pro_price'] == ''
+          ? null
+          : _doubleValue(json['pro_price']),
+      proName: _stringValue(json['pro_name']),
+      image: image,
+      imageUrl: imageUrl.isNotEmpty
+          ? imageUrl
+          : (image.startsWith('http://') || image.startsWith('https://')
+                ? image
+                : ''),
+      images: images,
+      imageCount: _intValue(json['image_count'], images.length),
     );
   }
+}
+
+String _stringValue(dynamic value) => value?.toString() ?? '';
+
+int _intValue(dynamic value, [int fallback = 0]) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '') ?? fallback;
+}
+
+double _doubleValue(dynamic value, [double fallback = 0]) {
+  if (value is num) return value.toDouble();
+  return double.tryParse(value?.toString() ?? '') ?? fallback;
 }
