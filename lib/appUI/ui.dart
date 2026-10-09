@@ -1128,9 +1128,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         .map((image) => image.imageUrl)
         .where((url) => url.isNotEmpty)
         .toList();
-    if (urls.isEmpty && remoteProduct.imageUrl.isNotEmpty) {
-      urls.add(remoteProduct.imageUrl);
+        
+    if (remoteProduct.imageUrl.isNotEmpty && !urls.contains(remoteProduct.imageUrl)) {
+      urls.insert(0, remoteProduct.imageUrl);
     }
+    
     return urls;
   }
 
@@ -1197,8 +1199,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           _buildMobileProductContent()
                         else
                           _buildDesktopProductContent(),
-                        SizedBox(height: isCompact ? 48 : 48),
-                        _buildBrandSection(isCompact),
                       ],
                     ),
                   ),
@@ -1209,17 +1209,38 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           Positioned(
             right: 16,
             bottom: 20,
-            child: FloatingActionButton(
-              heroTag: 'product-page-chat',
-              mini: true,
-              backgroundColor: const Color(0xFF0866FF),
-              foregroundColor: Colors.white,
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('ติดต่อสอบถามเพิ่มเติม')),
-                );
-              },
-              child: const Icon(Icons.chat_bubble, size: 22),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0866FF),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    'สอบถามเพิ่มเติม',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                FloatingActionButton(
+                  heroTag: 'product-page-chat',
+                  backgroundColor: const Color(0xFF0866FF),
+                  foregroundColor: Colors.white,
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('ติดต่อสอบถามเพิ่มเติม')),
+                    );
+                  },
+                  child: const Icon(Icons.chat_bubble, size: 30),
+                ),
+              ],
             ),
           ),
         ],
@@ -1231,7 +1252,17 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(flex: 5, child: _buildGallery(compact: false)),
+        Expanded(
+          flex: 5, 
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildGallery(compact: false),
+              const SizedBox(height: 48),
+              _buildBrandSection(false),
+            ],
+          ),
+        ),
         const SizedBox(width: 8),
         Expanded(flex: 6, child: _buildProductInformation(compact: false)),
       ],
@@ -1245,6 +1276,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         _buildGallery(compact: true),
         const SizedBox(height: 24),
         _buildProductInformation(compact: true),
+        const SizedBox(height: 48),
+        _buildBrandSection(true),
       ],
     );
   }
@@ -1529,7 +1562,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   minimumSize: Size(0, compact ? 58 : 42),
                 ),
                 child: const Text(
-                  'เพิ่มลงตะกร้า',
+                  'ซื้อสินค้า',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                 ),
               ),
@@ -1546,7 +1579,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   minimumSize: Size(0, compact ? 58 : 42),
                 ),
                 child: const Text(
-                  'สั่งซื้อเลย',
+                  'ซื้อสินค้า',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                 ),
               ),
