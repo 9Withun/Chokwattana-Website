@@ -308,9 +308,9 @@ class _DesktopNavigationState extends State<_DesktopNavigation> {
                     isOpen: _isCategoryMenuOpen,
                     onTap: _showCategoryMenu,
                   ),
-                  const _NavigationItem(label: 'สินค้าตามแบรนด์V'),
-                  const _NavigationItem(label: 'สินค้าตามห้องV'),
-                  const _NavigationItem(label: 'สินค้า ClearanceV'),
+                  const _NavigationItem(label: 'สินค้าตามแบรนด์', hasDropdown: true),
+                  const _NavigationItem(label: 'สินค้าตามห้อง', hasDropdown: true),
+                  const _NavigationItem(label: 'สินค้า Clearance', hasDropdown: true),
                   const _NavigationItem(label: 'ติดต่อโครงการ'),
                 ],
               ),
@@ -381,21 +381,29 @@ class _CategoryMenuButton extends StatelessWidget {
 }
 
 class _NavigationItem extends StatelessWidget {
-  const _NavigationItem({required this.label});
+  const _NavigationItem({required this.label, this.hasDropdown = false});
 
   final String label;
+  final bool hasDropdown;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(right: 38),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 19,
-          fontWeight: FontWeight.bold,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 19,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          if (hasDropdown)
+            const Icon(Icons.arrow_drop_down, color: Colors.white, size: 22),
+        ],
       ),
     );
   }
@@ -889,6 +897,8 @@ class ProductCard extends StatelessWidget {
         remoteItem?.productName ?? item?.name ?? 'PD-Name && detail';
     final productDetail = remoteItem?.productDetail ?? item?.description ?? '';
     final productPrice = remoteItem?.price ?? item?.price ?? 0;
+    final proPrice = remoteItem?.proPrice;
+    final proName = remoteItem?.proName ?? '';
     final productImage = remoteItem?.imageUrl ?? '';
 
     return InkWell(
@@ -992,15 +1002,58 @@ class ProductCard extends StatelessWidget {
                       ),
                     ] else
                       const Spacer(),
-                    Text(
-                      '${_formatPrice(productPrice)} ฿',
-                      style: TextStyle(
-                        color: Color(0xFFD88A00),
-                        fontFamily: 'serif',
-                        fontSize: isCompact ? 17 : 20,
-                        fontWeight: FontWeight.bold,
+                    if (proPrice != null) ...[
+                      Row(
+                        children: [
+                          Text(
+                            '${_formatPrice(proPrice)} ฿',
+                            style: TextStyle(
+                              color: const Color(0xFFD88A00),
+                              fontFamily: 'serif',
+                              fontSize: isCompact ? 17 : 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '${_formatPrice(productPrice)} ฿',
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontFamily: 'serif',
+                              fontSize: isCompact ? 12 : 14,
+                              decoration: TextDecoration.lineThrough,
+                              decorationColor: Colors.red.shade300,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
+                      if (proName.isNotEmpty)
+                        Container(
+                          margin: const EdgeInsets.only(top: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            proName,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: isCompact ? 9 : 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                    ] else
+                      Text(
+                        '${_formatPrice(productPrice)} ฿',
+                        style: TextStyle(
+                          color: const Color(0xFFD88A00),
+                          fontFamily: 'serif',
+                          fontSize: isCompact ? 17 : 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -1043,6 +1096,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   String get _detail =>
       _apiProduct?.productDetail ?? _product?.description ?? '';
   double get _price => _apiProduct?.price ?? _product?.price ?? 0;
+  double? get _proPrice => _apiProduct?.proPrice;
+  String get _proName => _apiProduct?.proName ?? '';
   List<String> get _imageUrls {
     final remoteProduct = _apiProduct;
     if (remoteProduct == null) return const [];
@@ -1294,19 +1349,73 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         ),
         const SizedBox(height: 4),
         Container(
-          height: compact ? 50 : 72,
-          padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 12),
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 10 : 12,
+            vertical: compact ? 8 : 12,
+          ),
           alignment: Alignment.centerLeft,
           color: _panelBackground,
-          child: Text(
-            '${_formatPrice(_price)} ฿',
-            style: TextStyle(
-              color: _priceOrange,
-              fontFamily: 'serif',
-              fontSize: compact ? 26 : 36,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          child: _proPrice != null
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '${_formatPrice(_proPrice!)} ฿',
+                          style: TextStyle(
+                            color: _priceOrange,
+                            fontFamily: 'serif',
+                            fontSize: compact ? 26 : 36,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            '${_formatPrice(_price)} ฿',
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontFamily: 'serif',
+                              fontSize: compact ? 16 : 20,
+                              decoration: TextDecoration.lineThrough,
+                              decorationColor: Colors.red.shade400,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_proName.isNotEmpty)
+                      Container(
+                        margin: const EdgeInsets.only(top: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          _proName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                  ],
+                )
+              : Text(
+                  '${_formatPrice(_price)} ฿',
+                  style: TextStyle(
+                    color: _priceOrange,
+                    fontFamily: 'serif',
+                    fontSize: compact ? 26 : 36,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
         ),
         const SizedBox(height: 6),
         Container(
@@ -1403,7 +1512,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   minimumSize: Size(0, compact ? 58 : 42),
                 ),
                 child: const Text(
-                  'ซื้อสินค้า',
+                  'เพิ่มลงตะกร้า',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                 ),
               ),
@@ -1420,7 +1529,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   minimumSize: Size(0, compact ? 58 : 42),
                 ),
                 child: const Text(
-                  'ซื้อสินค้า',
+                  'สั่งซื้อเลย',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                 ),
               ),
