@@ -6,7 +6,7 @@ import 'banner.dart';
 import 'product.dart';
 
 class ProductService {
-  static const _defaultBaseUrl = 'http://192.168.20.3/chokweb_database';
+  static const _defaultBaseUrl = 'http://100.119.18.68/chokweb_database';
 
   static String get baseUrl {
     const configured = String.fromEnvironment('API_BASE_URL', defaultValue: '');
