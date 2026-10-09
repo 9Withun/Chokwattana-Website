@@ -49,10 +49,10 @@ class _MyHomePageState extends State<MyHomePage> {
           HomeContentContainer(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: const [
-                BannerCardLayout(),
-                SizedBox(height: 24),
-                ApiProductSection(),
+              children: [
+                const BannerCardLayout(),
+                const SizedBox(height: 24),
+                const ApiProductSection(),
               ],
             ),
           ),

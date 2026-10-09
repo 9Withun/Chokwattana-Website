@@ -50,50 +50,52 @@ class _DesktopHeader extends StatelessWidget {
       children: [
         SizedBox(
           height: showNavigation ? 70 : 104,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 36),
-            child: Row(
-              children: [
-                const _BrandLogo(),
-                const SizedBox(width: 28),
-                Expanded(
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 700),
-                      child: const _SearchBox(compact: false),
+          child: HomeContentContainer(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  const _BrandLogo(),
+                  const SizedBox(width: 28),
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 700),
+                        child: const _SearchBox(compact: false),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 34),
-                const Text(
-                  'เข้าสู่ระบบ',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+                  const SizedBox(width: 34),
+                  const Text(
+                    'เข้าสู่ระบบ',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 20),
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    const _CartButton(),
-                    if (!showNavigation)
-                      const Positioned(
-                        right: 0,
-                        top: -22,
-                        child: Text(
-                          'ไทย | EN',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
+                  const SizedBox(width: 20),
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      const _CartButton(),
+                      if (!showNavigation)
+                        const Positioned(
+                          right: 0,
+                          top: -22,
+                          child: Text(
+                            'ไทย | EN',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                      ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -300,31 +302,38 @@ class _DesktopNavigationState extends State<_DesktopNavigation> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 36),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          SizedBox(
-            height: 52,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _CategoryMenuButton(
-                    key: _categoryMenuButtonKey,
-                    isOpen: _isCategoryMenuOpen,
-                    onTap: _showCategoryMenu,
+    return HomeContentContainer(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            SizedBox(
+              height: 52,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      _CategoryMenuButton(
+                        key: _categoryMenuButtonKey,
+                        isOpen: _isCategoryMenuOpen,
+                        onTap: _showCategoryMenu,
+                      ),
+                      const SizedBox(width: 32),
+                      const _NavigationItem(label: 'สินค้าตามแบรนด์', hasDropdown: true),
+                      const _NavigationItem(label: 'สินค้าตามห้อง', hasDropdown: true),
+                      const _NavigationItem(label: 'สินค้า Clearance', hasDropdown: true),
+                      const _NavigationItem(label: 'ติดต่อโครงการ'),
+                    ],
                   ),
-                  const _NavigationItem(label: 'สินค้าตามแบรนด์', hasDropdown: true),
-                  const _NavigationItem(label: 'สินค้าตามห้อง', hasDropdown: true),
-                  const _NavigationItem(label: 'สินค้า Clearance', hasDropdown: true),
-                  const _NavigationItem(label: 'ติดต่อโครงการ'),
-                ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -397,7 +406,7 @@ class _NavigationItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(right: 38),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
