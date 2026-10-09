@@ -56,7 +56,15 @@ class _DesktopHeader extends StatelessWidget {
               children: [
                 const _BrandLogo(),
                 const SizedBox(width: 28),
-                const Expanded(child: _SearchBox(compact: false)),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 700),
+                      child: const _SearchBox(compact: false),
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 34),
                 const Text(
                   'เข้าสู่ระบบ',
