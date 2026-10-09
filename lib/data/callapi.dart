@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import 'banner.dart';
 import 'product.dart';
+import 'user.dart';
 
 class ProductService {
   static const _defaultBaseUrl = 'http://100.119.18.68/chokweb_database';
@@ -100,6 +101,58 @@ class BannerService {
         throw const FormatException('พบข้อมูลแบนเนอร์ในรูปแบบที่ไม่ถูกต้อง');
       }
       return BannerItem.fromJson(Map<String, dynamic>.from(item));
+    }).toList();
+  }
+}
+
+class UserService {
+  static Future<List<User>> fetchUsers() async {
+    final base = ProductService.baseUrl;
+    final uri = Uri.parse('$base/api.php?resource=users');
+    
+    // ดึงค่า API_WRITE_TOKEN จาก Environment Variable
+    const token = String.fromEnvironment('API_WRITE_TOKEN', defaultValue: '');
+
+    final response = await http.get(
+      uri,
+      headers: {
+        'Accept': 'application/json',
+        if (token.isNotEmpty) 'Authorization': 'Bearer $token',
+      },
+    );
+    
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(response.body);
+    } on FormatException {
+      throw const FormatException('User API ส่งข้อมูลที่ไม่ใช่ JSON');
+    }
+
+    if (decoded is! Map<String, dynamic>) {
+      throw const FormatException('รูปแบบข้อมูลจาก User API ไม่ถูกต้อง');
+    }
+
+    if (response.statusCode < 200 ||
+        response.statusCode >= 300 ||
+        decoded['status'] != 'success') {
+      final message = decoded['message'];
+      throw Exception(
+        message is String && message.isNotEmpty
+            ? message
+            : 'โหลดข้อมูลผู้ใช้ไม่สำเร็จ (${response.statusCode})',
+      );
+    }
+
+    final data = decoded['data'];
+    if (data is! List) {
+      throw const FormatException('User API ไม่ได้ส่งรายการผู้ใช้');
+    }
+
+    return data.map((item) {
+      if (item is! Map) {
+        throw const FormatException('พบข้อมูลผู้ใช้ในรูปแบบที่ไม่ถูกต้อง');
+      }
+      return User.fromJson(Map<String, dynamic>.from(item));
     }).toList();
   }
 }
