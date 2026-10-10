@@ -1,282 +1,351 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
-import 'package:image_picker/image_picker.dart';
 
+import 'banner.dart';
 import 'product.dart';
+import 'user.dart';
 
 class ProductService {
-  static const String fallbackBaseUrl = 'http://192.168.20.3/my_website/api';
+  static const _defaultBaseUrl = 'http://192.168.20.3/chokweb_database';
 
   static String get baseUrl {
-    const configured = String.fromEnvironment(
-      'API_BASE_URL',
-      defaultValue: '',
-    );
-
+    const configured = String.fromEnvironment('API_BASE_URL', defaultValue: '');
     if (configured.isNotEmpty) {
       return configured.replaceFirst(RegExp(r'/+$'), '');
     }
 
-    if (kIsWeb) {
-      const backendHost = 'http://192.168.20.3';
-      final origin = Uri.base.origin;
-      final normalizedOrigin = origin.replaceFirst(RegExp(r'/+$'), '');
-
-      if (normalizedOrigin.isNotEmpty && normalizedOrigin != 'null') {
-        final hasLegacyPath = normalizedOrigin.endsWith('/my_website');
-        if (hasLegacyPath) {
-          return '$normalizedOrigin/api';
-        }
-
-        if (normalizedOrigin.contains('localhost') ||
-            normalizedOrigin.contains('127.0.0.1') ||
-            normalizedOrigin.contains('192.168.') ||
-            normalizedOrigin.contains('10.')) {
-          if (normalizedOrigin.contains(':')) {
-            return '$backendHost/my_website/api';
-          }
-          return '$normalizedOrigin/my_website/api';
-        }
-      }
-
-      return '$backendHost/my_website/api';
-    }
-
-    return fallbackBaseUrl;
+    return _defaultBaseUrl;
   }
 
-  static Uri _apiUri(String endpoint) {
-    final cleanBase = baseUrl.replaceFirst(RegExp(r'/+$'), '');
-    return Uri.parse('$cleanBase/$endpoint');
+  static Uri get apiUri {
+    final base = baseUrl;
+    return Uri.parse(base.endsWith('/api.php') ? base : '$base/api.php');
   }
 
   static Future<List<Product>> fetchProducts() async {
-    final response = await http.get(_apiUri('get_products.php'));
+    final response = await http.get(apiUri);
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(response.body);
+    } on FormatException {
+      throw const FormatException('API ส่งข้อมูลที่ไม่ใช่ JSON');
+    }
 
-    if (response.statusCode == 200) {
-      final jsonData = jsonDecode(response.body) as Map<String, dynamic>;
-      final products = jsonData['data'];
+    if (decoded is! Map<String, dynamic>) {
+      throw const FormatException('รูปแบบข้อมูลจาก API ไม่ถูกต้อง');
+    }
 
-      if (products is! List) {
-        throw const FormatException('รูปแบบข้อมูลสินค้าไม่ถูกต้อง');
-      }
-
-      return products
-          .map((item) => Product.fromJson(Map<String, dynamic>.from(item)))
-          .toList();
-    } else {
+    if (response.statusCode < 200 ||
+        response.statusCode >= 300 ||
+        decoded['status'] != 'success') {
+      final message = decoded['message'];
       throw Exception(
-        'โหลดข้อมูลสินค้าไม่สำเร็จ (${response.statusCode})',
-      );
-    }
-  }
-
-  static Future<bool> addProduct({
-    required String productId,
-    required String brand,
-    required String name,
-    required String type,
-    required String image,
-    required double price,
-    required double proPrice,
-    required String proName,
-    required int stock,
-  }) async {
-    final response = await http.post(
-      _apiUri('add_product.php'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'product_id': productId,
-        'product_brand': brand,
-        'product_name': name,
-        'product_type': type,
-        'image': image,
-        'price': price,
-        'pro_price': proPrice,
-        'pro_name': proName,
-        'stock': stock,
-      }),
-    );
-
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('เพิ่มสินค้าไม่สำเร็จ (${response.statusCode})');
-    }
-
-    final result = jsonDecode(response.body) as Map<String, dynamic>;
-    return result['status'] == 'success';
-  }
-
-  static Future<bool> createProduct({
-    required String productId,
-    required String brand,
-    required String name,
-    required String type,
-    required double price,
-    required double proPrice,
-    required String proName,
-    required int stock,
-    XFile? imageFile,
-    String image = '',
-  }) async {
-    if (imageFile == null) {
-      return addProduct(
-        productId: productId,
-        brand: brand,
-        name: name,
-        type: type,
-        image: image,
-        price: price,
-        proPrice: proPrice,
-        proName: proName,
-        stock: stock,
+        message is String && message.isNotEmpty
+            ? message
+            : 'โหลดข้อมูลสินค้าไม่สำเร็จ (${response.statusCode})',
       );
     }
 
-    final uploadResult = await uploadProduct(
-      productId: productId,
-      brand: brand,
-      name: name,
-      type: type,
-      price: price,
-      proPrice: proPrice,
-      proName: proName,
-      stock: stock,
-      imageFile: imageFile,
-    );
-    if (uploadResult['status'] != 'success') {
-      throw Exception(uploadResult['message'] ?? 'อัปโหลดรูปไม่สำเร็จ');
+    final data = decoded['data'];
+    if (data is! List) {
+      throw const FormatException(
+        'API ไม่ได้ส่งรายการสินค้าในรูปแบบที่ถูกต้อง',
+      );
     }
 
-    return true;
-  }
-
-  static Future<bool> updateProduct({
-    required int id,
-    required String productId,
-    required String brand,
-    required String name,
-    required String type,
-    required String image,
-    required double price,
-    required double proPrice,
-    required String proName,
-    required int stock,
-    XFile? imageFile,
-  }) async {
-    if (imageFile != null) {
-      final result = await uploadProduct(
-        id: id,
-        productId: productId,
-        brand: brand,
-        name: name,
-        type: type,
-        price: price,
-        proPrice: proPrice,
-        proName: proName,
-        stock: stock,
-        imageFile: imageFile,
-      );
-      if (result['status'] != 'success') {
-        throw Exception(result['message'] ?? 'แก้ไขสินค้าไม่สำเร็จ');
+    return data.map((item) {
+      if (item is! Map) {
+        throw const FormatException('พบข้อมูลสินค้าในรูปแบบที่ไม่ถูกต้อง');
       }
-      return true;
-    }
+      return Product.fromJson(Map<String, dynamic>.from(item));
+    }).toList();
+  }
+}
 
-    final response = await http.post(
-      _apiUri('update_product.php'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'id': id,
-        'product_id': productId,
-        'product_brand': brand,
-        'product_name': name,
-        'product_type': type,
-        'image': image,
-        'price': price,
-        'pro_price': proPrice,
-        'pro_name': proName,
-        'stock': stock,
-      }),
+class BannerService {
+  static Future<List<BannerItem>> fetchBanners() async {
+    final uri = ProductService.apiUri.replace(
+      queryParameters: {'resource': 'banners', 'active': '1'},
     );
-
-    return _isSuccessful(response, 'แก้ไขสินค้าไม่สำเร็จ');
-  }
-
-  static Future<bool> deleteProduct(int id) async {
-    final response = await http.post(
-      _apiUri('delete_product.php'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'id': id}),
-    );
-
-    return _isSuccessful(response, 'ลบสินค้าไม่สำเร็จ');
-  }
-
-  static bool _isSuccessful(http.Response response, String errorMessage) {
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('$errorMessage (${response.statusCode})');
+    final response = await http.get(uri);
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(response.body);
+    } on FormatException {
+      throw const FormatException('Banner API ส่งข้อมูลที่ไม่ใช่ JSON');
     }
 
-    final result = jsonDecode(response.body) as Map<String, dynamic>;
-    return result['status'] == 'success';
-  }
-  static Future<Map<String, dynamic>> uploadProduct({
-    int? id,
-    required String productId,
-    required String brand,
-    required String name,
-    required String type,
-    required double price,
-    required double proPrice,
-    required String proName,
-    required int stock,
-    XFile? imageFile,
-  }) async {
-    final uri = _apiUri('upload_product.php');
-    final request = http.MultipartRequest('POST', uri);
-
-    if (id != null) {
-      request.fields['id'] = id.toString();
+    if (decoded is! Map<String, dynamic>) {
+      throw const FormatException('รูปแบบข้อมูลจาก Banner API ไม่ถูกต้อง');
     }
-    request.fields['product_id'] = productId;
-    request.fields['product_brand'] = brand;
-    request.fields['product_name'] = name;
-    request.fields['product_type'] = type;
-    request.fields['price'] = price.toString();
-    request.fields['pro_price'] = proPrice.toString();
-    request.fields['pro_name'] = proName;
-    request.fields['stock'] = stock.toString();
 
-    if (imageFile != null) {
-      request.files.add(
-        http.MultipartFile.fromBytes(
-          'image',
-          await imageFile.readAsBytes(),
-          filename: imageFile.name,
-        ),
+    if (response.statusCode < 200 ||
+        response.statusCode >= 300 ||
+        decoded['status'] != 'success') {
+      final message = decoded['message'];
+      throw Exception(
+        message is String && message.isNotEmpty
+            ? message
+            : 'โหลดแบนเนอร์ไม่สำเร็จ (${response.statusCode})',
       );
     }
 
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
+    final data = decoded['data'];
+    if (data is! List) {
+      throw const FormatException('Banner API ไม่ได้ส่งรายการแบนเนอร์');
+    }
 
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      var message = 'อัปโหลดไม่สำเร็จ (${response.statusCode})';
+    return data.map((item) {
+      if (item is! Map) {
+        throw const FormatException('พบข้อมูลแบนเนอร์ในรูปแบบที่ไม่ถูกต้อง');
+      }
+      return BannerItem.fromJson(Map<String, dynamic>.from(item));
+    }).toList();
+  }
+}
+
+/// Login/session handling against `resource=auth` / `resource=me`.
+/// The per-user token is kept in secure storage; [currentUser] mirrors the
+/// logged-in member for the UI.
+class AuthService {
+  static const _tokenKey = 'auth_token';
+  static const _storage = FlutterSecureStorage();
+
+  /// Replaceable in tests.
+  @visibleForTesting
+  static http.Client client = http.Client();
+
+  static final ValueNotifier<UserItem?> currentUser = ValueNotifier(null);
+
+  static Uri _uri(Map<String, String> query) =>
+      ProductService.apiUri.replace(queryParameters: query);
+
+  static Map<String, dynamic> _decode(http.Response response, String label) {
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(response.body);
+    } on FormatException {
+      throw FormatException('$label ส่งข้อมูลที่ไม่ใช่ JSON');
+    }
+    if (decoded is! Map<String, dynamic>) {
+      throw FormatException('รูปแบบข้อมูลจาก $label ไม่ถูกต้อง');
+    }
+    if (response.statusCode < 200 ||
+        response.statusCode >= 300 ||
+        decoded['status'] != 'success') {
+      final message = decoded['message'];
+      throw Exception(
+        message is String && message.isNotEmpty
+            ? message
+            : '$label ไม่สำเร็จ (${response.statusCode})',
+      );
+    }
+    return decoded;
+  }
+
+  static UserItem _userFrom(Object? data, String label) {
+    if (data is! Map) {
+      throw FormatException('$label ไม่ได้ส่งข้อมูลผู้ใช้');
+    }
+    return UserItem.fromJson(Map<String, dynamic>.from(data));
+  }
+
+  /// POST ?resource=auth&action=login. [login] is tried as a member ID first
+  /// and then as a username, because the server accepts exactly one of them.
+  static Future<UserItem> login(String login, String password) async {
+    final id = login.trim();
+    if (id.isEmpty || password.isEmpty) {
+      throw Exception('กรุณากรอกรหัสสมาชิก/ชื่อผู้ใช้ และรหัสผ่าน');
+    }
+
+    final uri = _uri({'resource': 'auth', 'action': 'login'});
+    http.Response? response;
+    for (final field in const ['member_id', 'username']) {
+      response = await client.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({field: id, 'password': password}),
+      );
+      if (response.statusCode != 401) break;
+    }
+
+    return _startSession(_decode(response!, 'Login API'), 'Login API');
+  }
+
+  /// POST ?resource=auth&action=register. The server creates the member and
+  /// answers like a login (token + user), so the new member is signed in.
+  static Future<UserItem> register({
+    required String username,
+    required String password,
+    required String phoneNumber,
+    String? email,
+    String? address,
+  }) async {
+    final response = await client.post(
+      _uri({'resource': 'auth', 'action': 'register'}),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'username': username.trim(),
+        'password': password,
+        'phonenumber': phoneNumber.trim(),
+        if (email != null && email.trim().isNotEmpty) 'email': email.trim(),
+        if (address != null && address.trim().isNotEmpty)
+          'address': address.trim(),
+      }),
+    );
+    return _startSession(_decode(response, 'Register API'), 'Register API');
+  }
+
+  static Future<UserItem> _startSession(
+    Map<String, dynamic> decoded,
+    String label,
+  ) async {
+    final token = decoded['token'];
+    if (token is! String || token.isEmpty) {
+      throw FormatException('$label ไม่ได้ส่ง token');
+    }
+    final user = _userFrom(decoded['data'], label);
+    await _saveToken(token);
+    currentUser.value = user;
+    return user;
+  }
+
+  // Secure storage can fail (e.g. web without a secure context). The token is
+  // then kept in memory so the login still works for this app session.
+  static String? _memoryToken;
+
+  @visibleForTesting
+  static void resetMemoryToken() => _memoryToken = null;
+
+  static Future<void> _saveToken(String token) async {
+    _memoryToken = token;
+    try {
+      await _storage.write(key: _tokenKey, value: token);
+    } catch (e, st) {
+      debugPrint('AuthService: could not persist token: $e\n$st');
+    }
+  }
+
+  static Future<String?> getToken() async {
+    try {
+      return await _storage.read(key: _tokenKey) ?? _memoryToken;
+    } catch (e, st) {
+      debugPrint('AuthService: could not read token: $e\n$st');
+      return _memoryToken;
+    }
+  }
+
+  /// GET ?resource=me with the stored token. Clears the session on 401.
+  static Future<UserItem> me() async {
+    final token = await getToken();
+    if (token == null || token.isEmpty) {
+      throw Exception('ยังไม่ได้เข้าสู่ระบบ');
+    }
+
+    final response = await client.get(
+      _uri({'resource': 'me'}),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 401) {
+      await _clearSession();
+      throw Exception('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
+    }
+
+    final user = _userFrom(_decode(response, 'Me API')['data'], 'Me API');
+    currentUser.value = user;
+    return user;
+  }
+
+  /// Restores the session at app start. Never throws.
+  static Future<void> restoreSession() async {
+    try {
+      if ((await getToken())?.isNotEmpty ?? false) await me();
+    } catch (_) {
+      // Offline or expired: stay logged out in the UI.
+    }
+  }
+
+  /// Revokes the token on the server (best effort) and forgets it locally.
+  static Future<void> logout() async {
+    final token = await getToken();
+    if (token != null && token.isNotEmpty) {
       try {
-        final error = jsonDecode(response.body) as Map<String, dynamic>;
-        final fields = error['fields'];
-        final detail = fields is List ? fields.join(', ') : error['message'];
-        if (detail is String && detail.isNotEmpty) {
-          message = '$message: $detail';
-        }
+        await client.post(
+          _uri({'resource': 'auth', 'action': 'logout'}),
+          headers: {'Authorization': 'Bearer $token'},
+        );
       } catch (_) {
-        // Keep the HTTP error when the server does not return JSON.
+        // The local session is cleared regardless.
       }
-      throw Exception(message);
+    }
+    await _clearSession();
+  }
+
+  static Future<void> _clearSession() async {
+    _memoryToken = null;
+    try {
+      await _storage.delete(key: _tokenKey);
+    } catch (e, st) {
+      debugPrint('AuthService: could not delete token: $e\n$st');
+    }
+    currentUser.value = null;
+  }
+}
+
+class UserService {
+  // Pass with: --dart-define=API_READ_TOKEN=<token>
+  static const _readToken = String.fromEnvironment('API_READ_TOKEN');
+
+  static Future<List<UserItem>> fetchUsers({String? token}) async {
+    final bearer = token ?? _readToken;
+    if (bearer.isEmpty) {
+      throw const FormatException(
+        'ไม่พบ API read token (ใช้ --dart-define=API_READ_TOKEN=...)',
+      );
     }
 
-    return jsonDecode(response.body) as Map<String, dynamic>;
+    final uri = ProductService.apiUri.replace(
+      queryParameters: {'resource': 'users'},
+    );
+    final response = await http.get(
+      uri,
+      headers: {'Authorization': 'Bearer $bearer'},
+    );
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(response.body);
+    } on FormatException {
+      throw const FormatException('User API ส่งข้อมูลที่ไม่ใช่ JSON');
+    }
+
+    if (decoded is! Map<String, dynamic>) {
+      throw const FormatException('รูปแบบข้อมูลจาก User API ไม่ถูกต้อง');
+    }
+
+    if (response.statusCode < 200 ||
+        response.statusCode >= 300 ||
+        decoded['status'] != 'success') {
+      final message = decoded['message'];
+      throw Exception(
+        message is String && message.isNotEmpty
+            ? message
+            : 'โหลดข้อมูลผู้ใช้ไม่สำเร็จ (${response.statusCode})',
+      );
+    }
+
+    final data = decoded['data'];
+    if (data is! List) {
+      throw const FormatException('User API ไม่ได้ส่งรายการผู้ใช้');
+    }
+
+    return data.map((item) {
+      if (item is! Map) {
+        throw const FormatException('พบข้อมูลผู้ใช้ในรูปแบบที่ไม่ถูกต้อง');
+      }
+      return UserItem.fromJson(Map<String, dynamic>.from(item));
+    }).toList();
   }
 }

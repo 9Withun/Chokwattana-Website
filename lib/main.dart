@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
-import 'appUI/admin_page_contropanel.dart';
+
 import 'appUI/ui.dart';
+import 'data/callapi.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  AuthService.restoreSession();
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
 
   @override
   Widget build(BuildContext context) {
@@ -37,30 +39,27 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(
-          MediaQuery.sizeOf(context).width < 700 ? 124 : 122,
+          MediaQuery.sizeOf(context).width <
+                  HomeContentContainer.compactBreakpoint
+              ? 124
+              : 122,
         ),
         child: const HomeTopBar(),
       ),
       body: ListView(
         padding: const EdgeInsets.all(0),
-        children: const [
-          BannerCardLayout(),
-          SizedBox(height: 24),
-          PromotionCarousel(),
-          SizedBox(height: 24),
-          ApiProductSection(),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const AdminControlPanel(),
+        children: [
+          HomeContentContainer(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: const [
+                BannerCardLayout(),
+                SizedBox(height: 24),
+                ApiProductSection(),
+              ],
             ),
-          );
-        },
-        icon: const Icon(Icons.admin_panel_settings_outlined),
-        label: const Text('Admin'),
+          ),
+        ],
       ),
     );
   }
