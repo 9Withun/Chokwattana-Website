@@ -17,8 +17,26 @@ class HomeTopBar extends StatelessWidget implements PreferredSizeWidget {
 
   final bool showNavigation;
 
+  static const double desktopHeight = 141;
+  static const double mobileHeight = 124;
+
+  static double heightFor(double width) =>
+      width < HomeContentContainer.compactBreakpoint
+      ? mobileHeight
+      : desktopHeight;
+
+  /// Width-aware app bar used by every page so they share one top bar.
+  static PreferredSizeWidget appBar(BuildContext context) {
+    return PreferredSize(
+      preferredSize: Size.fromHeight(
+        heightFor(MediaQuery.sizeOf(context).width),
+      ),
+      child: const HomeTopBar(),
+    );
+  }
+
   @override
-  Size get preferredSize => Size.fromHeight(showNavigation ? 122 : 104);
+  Size get preferredSize => const Size.fromHeight(desktopHeight);
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +51,7 @@ class HomeTopBar extends StatelessWidget implements PreferredSizeWidget {
                 constraints.maxWidth < HomeContentContainer.compactBreakpoint;
             return isCompact
                 ? _MobileHeader(showNavigation: showNavigation)
-                : _DesktopHeader(showNavigation: showNavigation);
+                : const _DesktopHeader();
           },
         ),
       ),
@@ -42,50 +60,100 @@ class HomeTopBar extends StatelessWidget implements PreferredSizeWidget {
 }
 
 class _DesktopHeader extends StatelessWidget {
-  const _DesktopHeader({required this.showNavigation});
-
-  final bool showNavigation;
+  const _DesktopHeader();
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        SizedBox(
-          height: showNavigation ? 70 : 104,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 36),
-            child: Row(
-              children: [
-                const _BrandLogo(),
-                const SizedBox(width: 28),
-                const Expanded(child: _SearchBox(compact: false)),
-                const SizedBox(width: 34),
-                const _AccountButton(compact: false),
-                const SizedBox(width: 20),
-                Stack(
-                  clipBehavior: Clip.none,
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1255),
+        child: Column(
+          children: [
+            SizedBox(
+              height: 101,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const _CartButton(),
-                    if (!showNavigation)
-                      const Positioned(
-                        right: 0,
-                        top: -22,
-                        child: Text(
-                          'ไทย | EN',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
+                    const _BrandLogo(width: 220, height: 96),
+                    const SizedBox(width: 35),
+                    const Expanded(child: _SearchBox(compact: false)),
+                    const SizedBox(width: 24),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 320),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _AccountButton(compact: false),
+                                SizedBox(width: 14),
+                                _LanguageSwitch(),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'ติดต่อโครงการ',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                _CartButton(size: 60),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
+                    ),
                   ],
                 ),
-              ],
+              ),
             ),
+            const SizedBox(height: 40, child: _DesktopNavigation()),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LanguageSwitch extends StatelessWidget {
+  const _LanguageSwitch();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'ไทย',
+          style: TextStyle(
+            color: Color(0xFF1B1B8F),
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
           ),
         ),
-        if (showNavigation)
-          const SizedBox(height: 52, child: _DesktopNavigation()),
+        Text(' | ', style: TextStyle(color: Colors.black87)),
+        Text(
+          'EN',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ],
     );
   }
@@ -137,9 +205,8 @@ class _AccountButton extends StatelessWidget {
   final bool compact;
 
   Future<void> _openLogin(BuildContext context) {
-    return Navigator.of(
-      context,
-    ).push(MaterialPageRoute<bool>(builder: (_) => const LoginPage()));
+    return Navigator.of(context)
+        .push(MaterialPageRoute<bool>(builder: (_) => const LoginPage()));
   }
 
   @override
@@ -206,10 +273,13 @@ class _BrandLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: width,
-      height: height,
-      child: Image.asset('lib/Images/Logo.png', fit: BoxFit.contain),
+    return InkWell(
+      onTap: () => Navigator.of(context).popUntil((route) => route.isFirst),
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: Image.asset('lib/Images/Logo.png', fit: BoxFit.contain),
+      ),
     );
   }
 }
@@ -222,7 +292,7 @@ class _SearchBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 44,
+      height: compact ? 44 : 52,
       child: TextField(
         style: const TextStyle(color: Colors.black87, fontSize: 17),
         decoration: InputDecoration(
@@ -358,30 +428,27 @@ class _DesktopNavigationState extends State<_DesktopNavigation> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 36),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          SizedBox(
-            height: 52,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _CategoryMenuButton(
-                    key: _categoryMenuButtonKey,
-                    isOpen: _isCategoryMenuOpen,
-                    onTap: _showCategoryMenu,
-                  ),
-                  const _NavigationItem(label: 'สินค้าตามแบรนด์V'),
-                  const _NavigationItem(label: 'สินค้าตามห้องV'),
-                  const _NavigationItem(label: 'สินค้า ClearanceV'),
-                  const _NavigationItem(label: 'ติดต่อโครงการ'),
-                ],
+      padding: const EdgeInsets.only(left: 37),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            SizedBox(
+              width: 230,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: _CategoryMenuButton(
+                  key: _categoryMenuButtonKey,
+                  isOpen: _isCategoryMenuOpen,
+                  onTap: _showCategoryMenu,
+                ),
               ),
             ),
-          ),
-        ],
+            const _NavigationItem(label: 'สินค้าตามแบรนด์', width: 234),
+            const _NavigationItem(label: 'สินค้าตามห้อง', width: 201),
+            const _NavigationItem(label: 'สินค้าClearance', width: 220),
+          ],
+        ),
       ),
     );
   }
@@ -402,65 +469,58 @@ class _CategoryMenuButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       onLongPress: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.35),
-            width: 1.2,
-          ),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x22000000),
-              blurRadius: 10,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.grid_view, color: Colors.white, size: 20),
-            const SizedBox(width: 8),
-            Text(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.grid_view, color: Colors.white, size: 22),
+          const SizedBox(width: 4),
+          const Flexible(
+            child: Text(
               'หมวดหมู่สินค้า',
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 19,
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(width: 12),
-            Icon(
-              isOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-              color: Colors.white,
-              size: 24,
-            ),
-          ],
-        ),
+          ),
+          Icon(
+            isOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+            color: Colors.white,
+            size: 28,
+          ),
+        ],
       ),
     );
   }
 }
 
 class _NavigationItem extends StatelessWidget {
-  const _NavigationItem({required this.label});
+  const _NavigationItem({required this.label, required this.width});
 
   final String label;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 38),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 19,
-          fontWeight: FontWeight.bold,
-        ),
+    return SizedBox(
+      width: width,
+      child: Row(
+        children: [
+          Flexible(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const Icon(Icons.arrow_drop_down, color: Colors.white, size: 28),
+        ],
       ),
     );
   }
@@ -1090,14 +1150,12 @@ class ProductDetailPage extends StatefulWidget {
 
 class _ProductDetailPageState extends State<ProductDetailPage> {
   int _selectedImage = 0;
-  final TextEditingController _quantityController = TextEditingController(
-    text: '1',
-  );
 
   static const _pageBackground = Color(0xFFEEEEEE);
   static const _panelBackground = Color(0xFFF0F0F0);
   static const _brandGreen = Color(0xFF159B12);
   static const _priceOrange = Color(0xFFE59A00);
+  static const _messengerBlue = Color(0xFF0866FF);
 
   Product? get _apiProduct => widget.apiProduct;
   ProductItem? get _product => widget.product;
@@ -1127,18 +1185,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return urls;
   }
 
-  @override
-  void dispose() {
-    _quantityController.dispose();
-    super.dispose();
-  }
+  int? get _stock => _apiProduct?.stock;
 
   void _showPurchaseMessage({required bool orderNow}) {
-    final quantity = int.tryParse(_quantityController.text);
-    if (quantity == null || quantity < 1) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('กรุณาระบุจำนวนสินค้าอย่างน้อย 1 ชิ้น')),
-      );
+    final stock = _stock;
+    if (stock != null && stock < 1) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('สินค้าหมด')));
       return;
     }
 
@@ -1146,8 +1199,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       SnackBar(
         content: Text(
           orderNow
-              ? 'เลือกสั่งซื้อ $_name จำนวน $quantity ชิ้นแล้ว'
-              : 'เพิ่ม $_name จำนวน $quantity ชิ้นแล้ว',
+              ? 'เลือกสั่งซื้อ $_name แล้ว'
+              : 'เพิ่ม $_name ไปยังรถเข็นแล้ว',
         ),
       ),
     );
@@ -1161,12 +1214,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
     return Scaffold(
       backgroundColor: _pageBackground,
-      appBar: isCompact
-          ? PreferredSize(
-              preferredSize: const Size.fromHeight(100),
-              child: HomeTopBar(showNavigation: false),
-            )
-          : const HomeTopBar(showNavigation: false),
+      appBar: HomeTopBar.appBar(context),
       body: Stack(
         children: [
           ListView(
@@ -1174,7 +1222,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             children: [
               Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1024),
+                  constraints: const BoxConstraints(maxWidth: 1444),
                   child: Container(
                     color: Colors.white,
                     padding: EdgeInsets.fromLTRB(
@@ -1199,23 +1247,58 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               ),
             ],
           ),
-          Positioned(
-            right: 16,
-            bottom: 20,
-            child: FloatingActionButton(
-              heroTag: 'product-page-chat',
-              mini: true,
-              backgroundColor: const Color(0xFF0866FF),
-              foregroundColor: Colors.white,
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('ติดต่อสอบถามเพิ่มเติม')),
-                );
-              },
-              child: const Icon(Icons.chat_bubble, size: 22),
+          if (!isCompact)
+            Positioned(
+              right: 16,
+              bottom: 20,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _messengerBlue,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      'สอบถามเพิ่มเติม',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  _buildMessengerButton(size: 56),
+                ],
+              ),
             ),
-          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMessengerButton({required double size}) {
+    return Material(
+      color: _messengerBlue,
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('ติดต่อสอบถามเพิ่มเติม')),
+          );
+        },
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: Icon(Icons.messenger, color: Colors.white, size: size * 0.55),
+        ),
       ),
     );
   }
@@ -1224,9 +1307,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(flex: 5, child: _buildGallery(compact: false)),
-        const SizedBox(width: 8),
-        Expanded(flex: 6, child: _buildProductInformation(compact: false)),
+        Expanded(flex: 570, child: _buildGallery(compact: false)),
+        const SizedBox(width: 12),
+        Expanded(flex: 698, child: _buildProductInformation(compact: false)),
+        const Spacer(flex: 147),
       ],
     );
   }
@@ -1247,44 +1331,56 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return Column(
       children: [
         AspectRatio(
-          aspectRatio: compact ? 1.52 : 1,
-          child: _ProductPhoto(
-            key: const ValueKey('product-detail-image'),
-            imageUrl: urls.isEmpty ? null : urls[_selectedImage],
-            label: 'Product Image',
-          ),
-        ),
-        if (compact)
-          Padding(
-            padding: const EdgeInsets.only(top: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                urls.isEmpty ? 5 : urls.length,
-                (index) => Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 3),
-                  child: GestureDetector(
-                    onTap: () {
-                      if (urls.isNotEmpty) {
-                        setState(() => _selectedImage = index);
-                      }
-                    },
-                    child: Container(
-                      width: 14,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        color: index == _selectedImage
-                            ? Colors.grey.shade500
-                            : Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.black87, width: 1),
+          aspectRatio: compact ? 1.55 : 1,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              _ProductPhoto(
+                key: const ValueKey('product-detail-image'),
+                imageUrl: urls.isEmpty ? null : urls[_selectedImage],
+                label: 'Product Image',
+              ),
+              if (compact)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 6,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                      urls.isEmpty ? 5 : urls.length,
+                      (index) => Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                        child: GestureDetector(
+                          onTap: () {
+                            if (urls.isNotEmpty) {
+                              setState(() => _selectedImage = index);
+                            }
+                          },
+                          child: Container(
+                            width: 14,
+                            height: 14,
+                            decoration: BoxDecoration(
+                              color: index == _selectedImage
+                                  ? Colors.grey.shade500
+                                  : Colors.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.black87,
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ),
-          )
+            ],
+          ),
+        ),
+        if (compact)
+          const SizedBox.shrink()
         else if (urls.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 4),
@@ -1348,34 +1444,48 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          _name,
-          style: TextStyle(
-            fontFamily: 'serif',
-            fontSize: compact ? 21 : 30,
-            fontWeight: FontWeight.bold,
-            height: 1.2,
-          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Text(
+                _name,
+                style: TextStyle(
+                  fontFamily: 'serif',
+                  fontSize: compact ? 21 : 34,
+                  fontWeight: FontWeight.bold,
+                  height: 1.2,
+                ),
+              ),
+            ),
+            if (compact) _buildMessengerButton(size: 42),
+          ],
         ),
         const SizedBox(height: 4),
-        Container(
-          height: compact ? 50 : 72,
-          padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 12),
+        Align(
           alignment: Alignment.centerLeft,
-          color: _panelBackground,
-          child: Text(
-            '${_formatPrice(_price)} ฿',
-            style: TextStyle(
-              color: _priceOrange,
-              fontFamily: 'serif',
-              fontSize: compact ? 26 : 36,
-              fontWeight: FontWeight.bold,
+          child: FractionallySizedBox(
+            widthFactor: compact ? 0.42 : 1,
+            child: Container(
+              height: compact ? 50 : 100,
+              padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 18),
+              alignment: Alignment.centerLeft,
+              color: _panelBackground,
+              child: Text(
+                '${_formatPrice(_price)} ฿',
+                style: TextStyle(
+                  color: _priceOrange,
+                  fontFamily: 'serif',
+                  fontSize: compact ? 26 : 48,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: compact ? 6 : 12),
         Container(
-          height: compact ? 109 : 303,
+          height: compact ? 109 : 425,
           padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
           color: _panelBackground,
           child: Column(
@@ -1423,25 +1533,18 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            SizedBox(
+            Container(
+              key: const ValueKey('product-quantity'),
               width: compact ? 90 : 64,
               height: 34,
-              child: TextField(
-                key: const ValueKey('product-quantity'),
-                controller: _quantityController,
-                keyboardType: TextInputType.number,
-                textAlign: TextAlign.center,
-                decoration: const InputDecoration(
-                  contentPadding: EdgeInsets.symmetric(horizontal: 6),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.zero,
-                    borderSide: BorderSide(color: Colors.black26),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.zero,
-                    borderSide: BorderSide(color: Colors.black26),
-                  ),
-                ),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: Colors.black26),
+              ),
+              child: Text(
+                _stock?.toString() ?? '-',
+                style: const TextStyle(fontSize: 16),
               ),
             ),
             Text(
@@ -1454,43 +1557,57 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           ],
         ),
         const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => _showPurchaseMessage(orderNow: false),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: _brandGreen,
-                  side: const BorderSide(color: _brandGreen),
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.zero,
-                  ),
-                  minimumSize: Size(0, compact ? 58 : 42),
-                ),
-                child: const Text(
-                  'ซื้อสินค้า',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                ),
-              ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: compact ? double.infinity : 394,
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: FilledButton(
-                onPressed: () => _showPurchaseMessage(orderNow: true),
-                style: FilledButton.styleFrom(
-                  backgroundColor: _brandGreen,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.zero,
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _showPurchaseMessage(orderNow: false),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _brandGreen,
+                      side: const BorderSide(color: _brandGreen),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.zero,
+                      ),
+                      minimumSize: Size(0, compact ? 58 : 57),
+                    ),
+                    child: const Text(
+                      'เพิ่มไปยังรถเข็น',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
                   ),
-                  minimumSize: Size(0, compact ? 58 : 42),
                 ),
-                child: const Text(
-                  'ซื้อสินค้า',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: () => _showPurchaseMessage(orderNow: true),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _brandGreen,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.zero,
+                      ),
+                      minimumSize: Size(0, compact ? 58 : 57),
+                    ),
+                    child: const Text(
+                      'ซื้อสินค้า',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ],
     );
@@ -1500,8 +1617,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return Row(
       children: [
         SizedBox(
-          width: compact ? 132 : 94,
-          height: compact ? 132 : 94,
+          width: compact ? 132 : 132,
+          height: compact ? 132 : 132,
           child: const _ProductPhoto(label: 'logo Brand'),
         ),
         const SizedBox(width: 12),
@@ -1513,7 +1630,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 _brand.isEmpty ? 'Brand' : _brand,
                 style: TextStyle(
                   fontFamily: 'serif',
-                  fontSize: compact ? 34 : 24,
+                  fontSize: compact ? 34 : 32,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -1592,7 +1709,10 @@ class _PhotoPlaceholderPainter extends CustomPainter {
     final paint = Paint()
       ..color = const Color(0xFF111111)
       ..strokeWidth = 1;
-    canvas.drawColor(const Color(0xFFD9D9D9), BlendMode.src);
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()..color = const Color(0xFFD9D9D9),
+    );
     canvas.drawLine(Offset.zero, Offset(size.width, size.height), paint);
     canvas.drawLine(Offset(size.width, 0), Offset(0, size.height), paint);
   }
@@ -1735,24 +1855,39 @@ class _CategoryProductPageState extends State<CategoryProductPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.categoryName),
-        backgroundColor: HomeTopBar._green,
-        foregroundColor: Colors.white,
-      ),
-      body: FutureBuilder<List<Product>>(
-        future: _productsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      appBar: HomeTopBar.appBar(context),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                widget.categoryName,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: FutureBuilder<List<Product>>(
+              future: _productsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-          if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-            return _buildProductGrid(apiProducts: snapshot.data!);
-          }
+                if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                  return _buildProductGrid(apiProducts: snapshot.data!);
+                }
 
-          return _buildProductGrid(staticProducts: widget.products);
-        },
+                return _buildProductGrid(staticProducts: widget.products);
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

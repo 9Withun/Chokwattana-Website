@@ -153,26 +153,21 @@ class AuthService {
     return UserItem.fromJson(Map<String, dynamic>.from(data));
   }
 
-  /// POST ?resource=auth&action=login. [login] is tried as a member ID first
-  /// and then as a username, because the server accepts exactly one of them.
+  /// POST ?resource=auth&action=login with a single `login` field. The server
+  /// decides whether it is a phone number, member ID or username.
   static Future<UserItem> login(String login, String password) async {
     final id = login.trim();
     if (id.isEmpty || password.isEmpty) {
-      throw Exception('กรุณากรอกรหัสสมาชิก/ชื่อผู้ใช้ และรหัสผ่าน');
+      throw Exception('กรุณากรอกเบอร์โทรศัพท์/เลขสมาชิก และรหัสผ่าน');
     }
 
-    final uri = _uri({'resource': 'auth', 'action': 'login'});
-    http.Response? response;
-    for (final field in const ['member_id', 'username']) {
-      response = await client.post(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({field: id, 'password': password}),
-      );
-      if (response.statusCode != 401) break;
-    }
+    final response = await client.post(
+      _uri({'resource': 'auth', 'action': 'login'}),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'login': id, 'password': password}),
+    );
 
-    return _startSession(_decode(response!, 'Login API'), 'Login API');
+    return _startSession(_decode(response, 'Login API'), 'Login API');
   }
 
   /// POST ?resource=auth&action=register. The server creates the member and

@@ -35,7 +35,10 @@ void main() {
 
     final content = tester.getRect(find.byKey(const ValueKey('home-content')));
     expect(content.width, HomeContentContainer.maxWidth);
-    expect(content.left, closeTo((1365 - HomeContentContainer.maxWidth) / 2, 1));
+    expect(
+      content.left,
+      closeTo((1365 - HomeContentContainer.maxWidth) / 2, 1),
+    );
   });
 
   testWidgets('home content uses available width on mobile', (tester) async {
@@ -72,10 +75,7 @@ void main() {
         home: Center(
           child: SizedBox(
             width: 400,
-            child: BannerCarousel(
-              banners: carouselBanners,
-              aspectRatio: 4,
-            ),
+            child: BannerCarousel(banners: carouselBanners, aspectRatio: 4),
           ),
         ),
       ),
@@ -196,10 +196,12 @@ void main() {
     await tester.pump();
 
     expect(find.byKey(const ValueKey('home-banner-vertical')), findsNothing);
-    final promotionImage = find.descendant(
-      of: find.byKey(const ValueKey('home-promotion-carousel')),
-      matching: find.byType(Image),
-    ).first;
+    final promotionImage = find
+        .descendant(
+          of: find.byKey(const ValueKey('home-promotion-carousel')),
+          matching: find.byType(Image),
+        )
+        .first;
     final promotionSize = tester.getSize(promotionImage);
     expect(promotionSize.width, greaterThan(150));
     expect(promotionSize.width, lessThan(220));

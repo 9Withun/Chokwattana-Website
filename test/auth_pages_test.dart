@@ -67,9 +67,10 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.byKey(const ValueKey('login-submit')));
     await tester.tap(find.byKey(const ValueKey('login-submit')));
     await tester.pump();
-    expect(find.text('กรุณากรอกรหัสสมาชิกหรือชื่อผู้ใช้'), findsOneWidget);
+    expect(find.text('กรุณากรอกเบอร์โทรศัพท์หรือเลขสมาชิก'), findsOneWidget);
     expect(calls, isEmpty);
 
     await tester.enterText(
@@ -80,6 +81,7 @@ void main() {
       find.byKey(const ValueKey('password-field')),
       'secret123',
     );
+    await tester.ensureVisible(find.byKey(const ValueKey('login-submit')));
     await tester.tap(find.byKey(const ValueKey('login-submit')));
     await tester.pumpAndSettle();
 
@@ -103,6 +105,7 @@ void main() {
       find.byKey(const ValueKey('password-field')),
       'badpass12',
     );
+    await tester.ensureVisible(find.byKey(const ValueKey('login-submit')));
     await tester.tap(find.byKey(const ValueKey('login-submit')));
     await tester.pumpAndSettle();
 
@@ -127,6 +130,7 @@ void main() {
     await _pumpLauncher(tester, result);
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const ValueKey('login-to-register')));
     await tester.tap(find.byKey(const ValueKey('login-to-register')));
     await tester.pumpAndSettle();
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:project/appUI/ui.dart';
 import 'package:project/data/callapi.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -93,11 +94,7 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: _green,
-        foregroundColor: Colors.white,
-        title: const Text('สมัครสมาชิก'),
-      ),
+      appBar: HomeTopBar.appBar(context),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),

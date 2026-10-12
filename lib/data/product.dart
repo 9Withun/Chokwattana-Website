@@ -41,6 +41,7 @@ class Product {
     required this.imageUrl,
     required this.images,
     required this.imageCount,
+    this.stock,
   });
 
   final int id;
@@ -55,6 +56,7 @@ class Product {
   final String imageUrl;
   final List<ProductImage> images;
   final int imageCount;
+  final int? stock;
 
   factory Product.fromJson(Map<String, dynamic> json) {
     final rawImages = json['images'];
@@ -91,6 +93,12 @@ class Product {
                 : ''),
       images: images,
       imageCount: _intValue(json['image_count'], images.length),
+      stock: _nullableIntValue(
+        json['stock'] ??
+            json['product_stock'] ??
+            json['quantity'] ??
+            json['qty'],
+      ),
     );
   }
 }
@@ -101,6 +109,11 @@ int _intValue(dynamic value, [int fallback = 0]) {
   if (value is int) return value;
   if (value is num) return value.toInt();
   return int.tryParse(value?.toString() ?? '') ?? fallback;
+}
+
+int? _nullableIntValue(dynamic value) {
+  if (value == null || value == '') return null;
+  return _intValue(value);
 }
 
 double _doubleValue(dynamic value, [double fallback = 0]) {

@@ -37,15 +37,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(
-          MediaQuery.sizeOf(context).width <
-                  HomeContentContainer.compactBreakpoint
-              ? 124
-              : 122,
-        ),
-        child: const HomeTopBar(),
-      ),
+      appBar: HomeTopBar.appBar(context),
       body: ListView(
         padding: const EdgeInsets.all(0),
         children: [

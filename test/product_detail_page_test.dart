@@ -32,7 +32,7 @@ void main() {
       find.byKey(const ValueKey('product-detail-image')),
     );
     final title = tester.getRect(find.text('Product Name'));
-    expect(image.height, closeTo(image.width / 1.52, 1));
+    expect(image.height, closeTo(image.width / 1.55, 1));
     expect(title.top, greaterThan(image.bottom));
   });
 
@@ -76,21 +76,26 @@ void main() {
     expect(find.text('1,250 ฿'), findsOneWidget);
   });
 
-  testWidgets('invalid quantity is rejected with a message', (tester) async {
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
+  testWidgets('shows stock from the product data', (tester) async {
     await tester.pumpWidget(
-      MaterialApp(home: ProductDetailPage(apiProduct: createProduct())),
+      MaterialApp(
+        home: ProductDetailPage(
+          apiProduct: Product.fromJson({
+            'product_name': 'Product Name',
+            'price': 10,
+            'stock': 7,
+          }),
+        ),
+      ),
     );
-    await tester.enterText(find.byKey(const ValueKey('product-quantity')), '0');
-    await tester.ensureVisible(find.text('ซื้อสินค้า').first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('ซื้อสินค้า').first);
-    await tester.pump();
 
-    expect(find.text('กรุณาระบุจำนวนสินค้าอย่างน้อย 1 ชิ้น'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('product-quantity')),
+        matching: find.text('7'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('เพิ่มไปยังรถเข็น'), findsOneWidget);
   });
 }

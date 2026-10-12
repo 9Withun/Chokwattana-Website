@@ -12,7 +12,9 @@ import 'package:project/main.dart';
 import 'package:project/appUI/ui.dart';
 
 void main() {
-  testWidgets('Category menu opens when tapping category item', (WidgetTester tester) async {
+  testWidgets('Category menu opens when tapping category item', (
+    WidgetTester tester,
+  ) async {
     tester.view.physicalSize = const Size(1280, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -29,7 +31,9 @@ void main() {
     expect(find.text('อุปกรณ์ตกแต่งบ้าน'), findsOneWidget);
   });
 
-  testWidgets('Selecting a category navigates to that category page', (WidgetTester tester) async {
+  testWidgets('Selecting a category navigates to that category page', (
+    WidgetTester tester,
+  ) async {
     tester.view.physicalSize = const Size(1280, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);

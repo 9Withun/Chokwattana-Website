@@ -4,12 +4,15 @@ import 'listmenu.dart';
 class CategoryRepository {
   static List<String> get categoryNames => List<String>.from(listMenu);
 
-  static List<ProductCategory> get categories =>
-      categoryNames.map((name) => ProductCategory(
-            id: name,
-            name: name,
-            products: _defaultProductsFor(name),
-          )).toList();
+  static List<ProductCategory> get categories => categoryNames
+      .map(
+        (name) => ProductCategory(
+          id: name,
+          name: name,
+          products: _defaultProductsFor(name),
+        ),
+      )
+      .toList();
 
   static ProductCategory? findByName(String name) {
     return categories.where((category) => category.name == name).firstOrNull;

@@ -46,7 +46,7 @@ void main() {
 
     expect(sent.url.queryParameters, {'resource': 'auth', 'action': 'login'});
     expect(jsonDecode(sent.body), {
-      'member_id': '00000001',
+      'login': '00000001',
       'password': 'secret123',
     });
     expect(user.username, 'tester');
@@ -54,14 +54,10 @@ void main() {
     expect(await AuthService.getToken(), 'a' * 64);
   });
 
-  test('login falls back to username when member_id is rejected', () async {
+  test('login sends a single request with the login field', () async {
     final bodies = <Map<String, dynamic>>[];
     AuthService.client = MockClient((request) async {
-      final body = jsonDecode(request.body) as Map<String, dynamic>;
-      bodies.add(body);
-      if (body.containsKey('member_id')) {
-        return _json(401, {'status': 'error', 'message': 'Invalid login'});
-      }
+      bodies.add(jsonDecode(request.body) as Map<String, dynamic>);
       return _json(200, {
         'status': 'success',
         'token': 'b' * 64,
@@ -69,9 +65,11 @@ void main() {
       });
     });
 
-    await AuthService.login('tester', 'secret123');
+    await AuthService.login('0812345678', 'secret123');
 
-    expect(bodies.map((b) => b.keys.first), ['member_id', 'username']);
+    expect(bodies, [
+      {'login': '0812345678', 'password': 'secret123'},
+    ]);
     expect(await AuthService.getToken(), 'b' * 64);
   });
 

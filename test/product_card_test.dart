@@ -9,8 +9,7 @@ void main() {
   ) async {
     final product = Product.fromJson({
       'product_name': 'PD-Name',
-      'product_detail':
-          'detail-detail-detail-detail-detail detail-detail-detail-detail-detail',
+      'product_detail': 'detail-detail-detail-detail-detail detail-detail-detail-detail-detail',
       'price': 1250,
     });
 
