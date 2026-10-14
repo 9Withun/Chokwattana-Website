@@ -154,6 +154,10 @@ void main() {
     expect(find.text('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร'), findsOneWidget);
     expect(find.text('รหัสผ่านไม่ตรงกัน'), findsOneWidget);
     expect(find.text('กรอกตัวเลข 1-10 หลัก'), findsOneWidget);
+    expect(
+      find.text('กรุณายอมรับเงื่อนไขการให้บริการและนโยบายความเป็นส่วนตัว'),
+      findsOneWidget,
+    );
 
     await tester.enterText(
       find.byKey(const ValueKey('register-password')),
@@ -167,6 +171,11 @@ void main() {
       find.byKey(const ValueKey('register-phone')),
       '0812345678',
     );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('register-accept-terms')),
+    );
+    await tester.tap(find.byKey(const ValueKey('register-accept-terms')));
+    await tester.pumpAndSettle();
     await tester.ensureVisible(find.byKey(const ValueKey('register-submit')));
     await tester.tap(find.byKey(const ValueKey('register-submit')));
     await tester.pumpAndSettle();

@@ -8,8 +8,44 @@ import 'banner.dart';
 import 'product.dart';
 import 'user.dart';
 
+/// Decodes the `{"status":"success"|"error", ...}` envelope every endpoint
+/// returns and throws with the server's `message` when the call failed.
+Map<String, dynamic> _decodeEnvelope(
+  http.Response response,
+  String label, {
+  String? failureMessage,
+}) {
+  final Object? decoded;
+  try {
+    decoded = jsonDecode(response.body);
+  } on FormatException {
+    // Free hosts sometimes answer with an HTML error/challenge page.
+    final snippet = response.body.trim();
+    throw FormatException(
+      '$label ส่งข้อมูลที่ไม่ใช่ JSON (HTTP ${response.statusCode}): '
+      '${snippet.length > 80 ? snippet.substring(0, 80) : snippet}',
+    );
+  }
+  if (decoded is! Map<String, dynamic>) {
+    throw FormatException('รูปแบบข้อมูลจาก $label ไม่ถูกต้อง');
+  }
+  if (response.statusCode < 200 ||
+      response.statusCode >= 300 ||
+      decoded['status'] != 'success') {
+    final message = decoded['message'];
+    throw Exception(
+      message is String && message.isNotEmpty
+          ? message
+          : '${failureMessage ?? '$label ไม่สำเร็จ'} (${response.statusCode})',
+    );
+  }
+  return decoded;
+}
+
 class ProductService {
-  static const _defaultBaseUrl = 'http://192.168.20.3/chokweb_database';
+  // Local XAMPP install (see the API README). Override at build time with
+  // --dart-define=API_BASE_URL=https://<domain>/<folder>
+  static const _defaultBaseUrl = 'http://localhost/chokweb_database';
 
   static String get baseUrl {
     const configured = String.fromEnvironment('API_BASE_URL', defaultValue: '');
@@ -27,27 +63,11 @@ class ProductService {
 
   static Future<List<Product>> fetchProducts() async {
     final response = await http.get(apiUri);
-    final Object? decoded;
-    try {
-      decoded = jsonDecode(response.body);
-    } on FormatException {
-      throw const FormatException('API ส่งข้อมูลที่ไม่ใช่ JSON');
-    }
-
-    if (decoded is! Map<String, dynamic>) {
-      throw const FormatException('รูปแบบข้อมูลจาก API ไม่ถูกต้อง');
-    }
-
-    if (response.statusCode < 200 ||
-        response.statusCode >= 300 ||
-        decoded['status'] != 'success') {
-      final message = decoded['message'];
-      throw Exception(
-        message is String && message.isNotEmpty
-            ? message
-            : 'โหลดข้อมูลสินค้าไม่สำเร็จ (${response.statusCode})',
-      );
-    }
+    final decoded = _decodeEnvelope(
+      response,
+      'API',
+      failureMessage: 'โหลดข้อมูลสินค้าไม่สำเร็จ',
+    );
 
     final data = decoded['data'];
     if (data is! List) {
@@ -71,27 +91,11 @@ class BannerService {
       queryParameters: {'resource': 'banners', 'active': '1'},
     );
     final response = await http.get(uri);
-    final Object? decoded;
-    try {
-      decoded = jsonDecode(response.body);
-    } on FormatException {
-      throw const FormatException('Banner API ส่งข้อมูลที่ไม่ใช่ JSON');
-    }
-
-    if (decoded is! Map<String, dynamic>) {
-      throw const FormatException('รูปแบบข้อมูลจาก Banner API ไม่ถูกต้อง');
-    }
-
-    if (response.statusCode < 200 ||
-        response.statusCode >= 300 ||
-        decoded['status'] != 'success') {
-      final message = decoded['message'];
-      throw Exception(
-        message is String && message.isNotEmpty
-            ? message
-            : 'โหลดแบนเนอร์ไม่สำเร็จ (${response.statusCode})',
-      );
-    }
+    final decoded = _decodeEnvelope(
+      response,
+      'Banner API',
+      failureMessage: 'โหลดแบนเนอร์ไม่สำเร็จ',
+    );
 
     final data = decoded['data'];
     if (data is! List) {
@@ -123,28 +127,8 @@ class AuthService {
   static Uri _uri(Map<String, String> query) =>
       ProductService.apiUri.replace(queryParameters: query);
 
-  static Map<String, dynamic> _decode(http.Response response, String label) {
-    final Object? decoded;
-    try {
-      decoded = jsonDecode(response.body);
-    } on FormatException {
-      throw FormatException('$label ส่งข้อมูลที่ไม่ใช่ JSON');
-    }
-    if (decoded is! Map<String, dynamic>) {
-      throw FormatException('รูปแบบข้อมูลจาก $label ไม่ถูกต้อง');
-    }
-    if (response.statusCode < 200 ||
-        response.statusCode >= 300 ||
-        decoded['status'] != 'success') {
-      final message = decoded['message'];
-      throw Exception(
-        message is String && message.isNotEmpty
-            ? message
-            : '$label ไม่สำเร็จ (${response.statusCode})',
-      );
-    }
-    return decoded;
-  }
+  static Map<String, dynamic> _decode(http.Response response, String label) =>
+      _decodeEnvelope(response, label);
 
   static UserItem _userFrom(Object? data, String label) {
     if (data is! Map) {
@@ -153,10 +137,18 @@ class AuthService {
     return UserItem.fromJson(Map<String, dynamic>.from(data));
   }
 
+  /// Phone numbers are stored as digits only; drop the dashes/spaces people
+  /// type (e.g. `081-234-5678`) the same way the server does.
+  static String normalizePhone(String value) =>
+      value.replaceAll(RegExp(r'[\s-]'), '');
+
   /// POST ?resource=auth&action=login with a single `login` field. The server
   /// decides whether it is a phone number, member ID or username.
   static Future<UserItem> login(String login, String password) async {
-    final id = login.trim();
+    var id = login.trim();
+    // Only reformat input that looks like a phone number, so usernames that
+    // contain dashes or spaces are sent unchanged.
+    if (RegExp(r'^[\d\s-]+$').hasMatch(id)) id = normalizePhone(id);
     if (id.isEmpty || password.isEmpty) {
       throw Exception('กรุณากรอกเบอร์โทรศัพท์/เลขสมาชิก และรหัสผ่าน');
     }
@@ -178,6 +170,7 @@ class AuthService {
     required String phoneNumber,
     String? email,
     String? address,
+    String? paymentMethod,
   }) async {
     final response = await client.post(
       _uri({'resource': 'auth', 'action': 'register'}),
@@ -185,10 +178,12 @@ class AuthService {
       body: jsonEncode({
         'username': username.trim(),
         'password': password,
-        'phonenumber': phoneNumber.trim(),
+        'phonenumber': normalizePhone(phoneNumber),
         if (email != null && email.trim().isNotEmpty) 'email': email.trim(),
         if (address != null && address.trim().isNotEmpty)
           'address': address.trim(),
+        if (paymentMethod != null && paymentMethod.trim().isNotEmpty)
+          'payment_method': paymentMethod.trim(),
       }),
     );
     return _startSession(_decode(response, 'Register API'), 'Register API');
@@ -294,7 +289,14 @@ class UserService {
   // Pass with: --dart-define=API_READ_TOKEN=<token>
   static const _readToken = String.fromEnvironment('API_READ_TOKEN');
 
-  static Future<List<UserItem>> fetchUsers({String? token}) async {
+  /// GET ?resource=users. The server searches member_id/username/email and
+  /// caps [limit] at 100 per page.
+  static Future<List<UserItem>> fetchUsers({
+    String? token,
+    String? search,
+    int? limit,
+    int? page,
+  }) async {
     final bearer = token ?? _readToken;
     if (bearer.isEmpty) {
       throw const FormatException(
@@ -303,33 +305,22 @@ class UserService {
     }
 
     final uri = ProductService.apiUri.replace(
-      queryParameters: {'resource': 'users'},
+      queryParameters: {
+        'resource': 'users',
+        if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
+        if (limit != null) 'limit': '${limit.clamp(1, 100)}',
+        if (page != null) 'page': '$page',
+      },
     );
     final response = await http.get(
       uri,
       headers: {'Authorization': 'Bearer $bearer'},
     );
-    final Object? decoded;
-    try {
-      decoded = jsonDecode(response.body);
-    } on FormatException {
-      throw const FormatException('User API ส่งข้อมูลที่ไม่ใช่ JSON');
-    }
-
-    if (decoded is! Map<String, dynamic>) {
-      throw const FormatException('รูปแบบข้อมูลจาก User API ไม่ถูกต้อง');
-    }
-
-    if (response.statusCode < 200 ||
-        response.statusCode >= 300 ||
-        decoded['status'] != 'success') {
-      final message = decoded['message'];
-      throw Exception(
-        message is String && message.isNotEmpty
-            ? message
-            : 'โหลดข้อมูลผู้ใช้ไม่สำเร็จ (${response.statusCode})',
-      );
-    }
+    final decoded = _decodeEnvelope(
+      response,
+      'User API',
+      failureMessage: 'โหลดข้อมูลผู้ใช้ไม่สำเร็จ',
+    );
 
     final data = decoded['data'];
     if (data is! List) {

@@ -73,6 +73,23 @@ void main() {
     expect(await AuthService.getToken(), 'b' * 64);
   });
 
+  test('login strips dashes/spaces from phone numbers only', () async {
+    final logins = <Object?>[];
+    AuthService.client = MockClient((request) async {
+      logins.add((jsonDecode(request.body) as Map)['login']);
+      return _json(200, {
+        'status': 'success',
+        'token': 'c' * 64,
+        'data': _userJson,
+      });
+    });
+
+    await AuthService.login('081-234 5678', 'secret123');
+    await AuthService.login('john-doe', 'secret123');
+
+    expect(logins, ['0812345678', 'john-doe']);
+  });
+
   test('login surfaces the server message and stores nothing', () async {
     AuthService.client = MockClient(
       (_) async => _json(401, {
