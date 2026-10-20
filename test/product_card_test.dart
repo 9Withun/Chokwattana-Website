@@ -162,6 +162,13 @@ void main() {
     expect(secondCard.left, greaterThan(firstCard.right));
     expect(secondCard.top, closeTo(firstCard.top, 1));
 
+    final fourthCard = tester.getRect(cards.at(3));
+    final fifthCard = tester.getRect(cards.at(4));
+    expect(fourthCard.top, closeTo(firstCard.top, 1));
+    expect(fourthCard.right, closeTo(1256, 1));
+    expect(fifthCard.left, closeTo(firstCard.left, 1));
+    expect(fifthCard.top, greaterThan(firstCard.bottom));
+
     final grid = tester.widget<GridView>(
       find.byKey(const ValueKey('desktop-product-grid')),
     );

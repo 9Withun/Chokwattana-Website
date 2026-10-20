@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:project/appUI/login_page.dart';
 import 'package:project/data/banner.dart';
 import 'package:project/data/callapi.dart';
+import 'package:project/data/category_repository.dart';
 import 'package:project/data/product.dart';
 import 'package:project/data/user.dart';
 import 'package:project/models/product_model.dart';
@@ -386,15 +387,13 @@ class _DesktopNavigationState extends State<_DesktopNavigation> {
       _isCategoryMenuOpen = false;
     });
 
-    final products = CategoryMenuProcess.productsForCategory(categoryName);
     if (!mounted) {
       return;
     }
 
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) =>
-            CategoryProductPage(categoryName: categoryName, products: products),
+        builder: (_) => CategoryProductPage(categoryName: categoryName),
       ),
     );
   }
@@ -1002,6 +1001,13 @@ class ProductCard extends StatelessWidget {
 
   static const _imageBackgroundColor = Color(0xFFFFFFFF);
 
+  /// Cards per row in product grids: 4 on desktop, fewer where 4 won't fit.
+  static int columnsFor(double width) {
+    if (width < 700) return 2;
+    if (width < 1000) return 3;
+    return 4;
+  }
+
   final ProductItem? product;
   final Product? apiProduct;
 
@@ -1094,7 +1100,7 @@ class ProductCard extends StatelessWidget {
                       style: TextStyle(
                         color: Colors.grey,
                         fontFamily: 'serif',
-                        fontSize: isCompact ? 13 : 15,
+                        fontSize: isCompact ? 16 : 17,
                         fontWeight: FontWeight.bold,
                         height: 1.12,
                       ),
@@ -1109,7 +1115,7 @@ class ProductCard extends StatelessWidget {
                           style: TextStyle(
                             color: Colors.grey,
                             fontFamily: 'serif',
-                            fontSize: isCompact ? 11 : 13,
+                            fontSize: isCompact ? 12 : 14,
                             fontWeight: FontWeight.bold,
                             height: 1.12,
                           ),
@@ -1122,7 +1128,7 @@ class ProductCard extends StatelessWidget {
                       style: TextStyle(
                         color: Color(0xFFD88A00),
                         fontFamily: 'serif',
-                        fontSize: isCompact ? 17 : 20,
+                        fontSize: isCompact ? 20 : 23,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -1812,8 +1818,8 @@ class _ApiProductSectionState extends State<ApiProductSection> {
                 horizontal: horizontalPadding,
                 vertical: 12,
               ),
-              gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 220,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: ProductCard.columnsFor(constraints.maxWidth),
                 childAspectRatio: isMobile ? 0.58 : 0.62,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
@@ -1833,23 +1839,27 @@ class CategoryProductPage extends StatefulWidget {
   const CategoryProductPage({
     super.key,
     required this.categoryName,
-    required this.products,
+    this.productsFuture,
   });
 
   final String categoryName;
-  final List<ProductItem> products;
+  final Future<List<Product>>? productsFuture;
 
   @override
   State<CategoryProductPage> createState() => _CategoryProductPageState();
 }
 
 class _CategoryProductPageState extends State<CategoryProductPage> {
-  late final Future<List<Product>> _productsFuture;
+  late Future<List<Product>> _productsFuture;
 
   @override
   void initState() {
     super.initState();
-    _productsFuture = ProductService.fetchProducts();
+    _loadProducts();
+  }
+
+  void _loadProducts() {
+    _productsFuture = widget.productsFuture ?? ProductService.fetchProducts();
   }
 
   @override
@@ -1879,11 +1889,40 @@ class _CategoryProductPageState extends State<CategoryProductPage> {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-                  return _buildProductGrid(apiProducts: snapshot.data!);
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('โหลดข้อมูลสินค้าไม่สำเร็จ'),
+                          const SizedBox(height: 8),
+                          Text(
+                            snapshot.error.toString(),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          OutlinedButton(
+                            onPressed: () => setState(_loadProducts),
+                            child: const Text('ลองใหม่'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
                 }
 
-                return _buildProductGrid(staticProducts: widget.products);
+                return _buildProductGrid(
+                  CategoryRepository.filterByCategory(
+                    snapshot.data ?? const <Product>[],
+                    widget.categoryName,
+                  ),
+                );
               },
             ),
           ),
@@ -1892,30 +1931,26 @@ class _CategoryProductPageState extends State<CategoryProductPage> {
     );
   }
 
-  Widget _buildProductGrid({
-    List<Product>? apiProducts,
-    List<ProductItem>? staticProducts,
-  }) {
-    final itemCount = apiProducts?.length ?? staticProducts?.length ?? 0;
-    if (itemCount == 0) {
+  Widget _buildProductGrid(List<Product> products) {
+    if (products.isEmpty) {
       return const Center(child: Text('ไม่มีสินค้าในหมวดนี้'));
     }
 
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.62,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
+    return HomeContentContainer(
+      child: LayoutBuilder(
+        builder: (context, constraints) => GridView.builder(
+          padding: const EdgeInsets.all(16),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: ProductCard.columnsFor(constraints.maxWidth),
+            childAspectRatio: 0.62,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+          ),
+          itemCount: products.length,
+          itemBuilder: (context, index) =>
+              ProductCard(apiProduct: products[index]),
+        ),
       ),
-      itemCount: itemCount,
-      itemBuilder: (context, index) {
-        if (apiProducts != null) {
-          return ProductCard(apiProduct: apiProducts[index]);
-        }
-        return ProductCard(product: staticProducts![index]);
-      },
     );
   }
 }

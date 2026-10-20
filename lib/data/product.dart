@@ -33,6 +33,7 @@ class Product {
     required this.productId,
     required this.productBrand,
     required this.productName,
+    this.productType = '',
     required this.productDetail,
     required this.price,
     required this.proPrice,
@@ -48,6 +49,7 @@ class Product {
   final String productId;
   final String productBrand;
   final String productName;
+  final String productType;
   final String productDetail;
   final double price;
   final double? proPrice;
@@ -77,6 +79,7 @@ class Product {
       productId: _stringValue(json['product_id']),
       productBrand: _stringValue(json['product_brand']),
       productName: _stringValue(json['product_name']),
+      productType: _stringValue(json['product_type']).trim(),
       productDetail: _stringValue(
         json['product_detili'] ?? json['product_detail'],
       ),
