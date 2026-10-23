@@ -25,6 +25,14 @@ class ProductImage {
           json['is_primary'] == '1',
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'image_id': id,
+    'image': image,
+    'image_url': imageUrl,
+    'sort_order': sortOrder,
+    'is_primary': isPrimary,
+  };
 }
 
 class Product {
@@ -104,6 +112,24 @@ class Product {
       ),
     );
   }
+
+  /// Same keys as the API, so `Product.fromJson(p.toJson())` round-trips.
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'product_id': productId,
+    'product_brand': productBrand,
+    'product_name': productName,
+    'product_type': productType,
+    'product_detail': productDetail,
+    'price': price,
+    'pro_price': proPrice,
+    'pro_name': proName,
+    'image': image,
+    'image_url': imageUrl,
+    'images': images.map((image) => image.toJson()).toList(),
+    'image_count': imageCount,
+    'stock': stock,
+  };
 }
 
 String _stringValue(dynamic value) => value?.toString() ?? '';

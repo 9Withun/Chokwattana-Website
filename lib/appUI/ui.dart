@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:project/appUI/cart_page.dart';
 import 'package:project/appUI/login_page.dart';
 import 'package:project/data/banner.dart';
 import 'package:project/data/callapi.dart';
+import 'package:project/data/cart.dart';
 import 'package:project/data/category_repository.dart';
 import 'package:project/data/product.dart';
 import 'package:project/data/user.dart';
@@ -331,42 +333,56 @@ class _CartButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          width: size,
-          height: size,
-          decoration: const BoxDecoration(
-            color: Colors.orange,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            Icons.shopping_cart_outlined,
-            color: Colors.white,
-            size: size * 0.55,
-          ),
-        ),
-        Positioned(
-          right: -3,
-          top: -4,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-            decoration: BoxDecoration(
-              color: Colors.red,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Text(
-              '0',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: () => Navigator.of(context)
+            .push(MaterialPageRoute<void>(builder: (_) => const CartPage())),
+        child: ListenableBuilder(
+          listenable: CartStore.instance,
+          builder: (context, _) => Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: size,
+                height: size,
+                decoration: const BoxDecoration(
+                  color: Colors.orange,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.shopping_cart_outlined,
+                  color: Colors.white,
+                  size: size * 0.55,
+                ),
               ),
-            ),
+              Positioned(
+                right: -3,
+                top: -4,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 5,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '${CartStore.instance.totalQuantity}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -1199,6 +1215,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('สินค้าหมด')));
       return;
+    }
+
+    final apiProduct = _apiProduct;
+    if (apiProduct != null) {
+      CartStore.instance.add(apiProduct);
+      if (orderNow) {
+        Navigator.of(context)
+            .push(MaterialPageRoute<void>(builder: (_) => const CartPage()));
+        return;
+      }
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
