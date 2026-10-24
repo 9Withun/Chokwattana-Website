@@ -11,9 +11,10 @@ samples, guidance on mobile development, and a full API reference.
 ## API
 
 The app talks to the ChokWeb PHP/MySQL REST API at
-`http://localhost/chokweb_database/api.php`
+`https://chokwattanahomecenter.free.nf/hosting_deploy/api.php`
 (single endpoint, `resource` query parameter selects the data type).
-Override the API folder URL at build time when using another host:
+Override the API folder URL at build time when using another host
+(e.g. `http://localhost/chokweb_database` for local XAMPP):
 
 ```sh
 flutter build web --dart-define=API_BASE_URL=https://<domain>/<folder>

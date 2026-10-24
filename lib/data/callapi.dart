@@ -43,9 +43,11 @@ Map<String, dynamic> _decodeEnvelope(
 }
 
 class ProductService {
-  // Local XAMPP install (see the API README). Override at build time with
+  // Production host. Override at build time with
   // --dart-define=API_BASE_URL=https://<domain>/<folder>
-  static const _defaultBaseUrl = 'http://localhost/chokweb_database';
+  // (e.g. http://localhost/chokweb_database for a local XAMPP install).
+  static const _defaultBaseUrl =
+      'https://chokwattanahomecenter.free.nf/hosting_deploy';
 
   static String get baseUrl {
     const configured = String.fromEnvironment('API_BASE_URL', defaultValue: '');
